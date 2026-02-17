@@ -14,8 +14,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        fetch-depth: 0
         with:
+          fetch-depth: 0
           submodules: recursive # Penting untuk menarik imgui dan zstd
 
       - name: Set up JDK 17
