@@ -1,67 +1,53 @@
-# AndroidSurfaceImgui
+This is a professional English translation of the documentation, tailored for the GitHub environment. I have polished the technical terms to ensure they align with standard Android development and ImGui terminology.
+AndroidSurfaceImgui
+Introduction
+An Android implementation that creates a system-level Surface to perform Dear ImGui rendering.
+Key Features
+ * RPC Support: Supports multi-process and remote rendering via RPC.
+ * Input Support: Full support for mouse wheel and physical keyboard input.
+ * Auto-Rotation: Seamlessly handles switching between Portrait and Landscape modes.
+ * Screen Record Protection: Supports flags to prevent UI capture during screen recording.
+> [!CAUTION]
+> Process Permissions: If the process owning the Surface runs with permissions lower than shell, the system will not add your Surface to the root view (it won't be visible). For technical details, see: SurfaceFlinger.cpp
+> 
+Supported Android Versions
+Major versions are listed below; sub-versions (point releases) are supported unless stated otherwise.
+| Legacy | Transition | Intermediate | Modern |
+|---|---|---|---|
+| ✅ Android 5 | ✅ Android 8 | ✅ Android 9 | ✅ Android 12 |
+| ✅ Android 6 |  | ✅ Android 10 | ✅ Android 13 |
+| ✅ Android 7 |  | ✅ Android 11 | ✅ Android 14 |
+|  |  |  | ✅ Android 15 |
+|  |  |  | ✅ Android 16 |
+Note: All current versions can be screen-recorded normally. If you find an incompatible version, please submit an issue.
+Compilation / Build Instructions
+ * Open your terminal in the project root directory.
+ * Initialize submodules: git submodule init
+ * Update submodules: git submodule update
+ * Generate build files:
+   cmake -DCMAKE_BUILD_TYPE=Release \
+-DCMAKE_TOOLCHAIN_FILE=${NDK_PATH}/build/cmake/android.toolchain.cmake \
+-DANDROID_PLATFORM=android-23 \
+-DANDROID_ABI=${PLATFORM} \
+-S . -B build -G Ninja
 
-## 介绍
-
-+ 支持RPC进行多进程/远程绘制。
-+ 支持鼠标滚轮
-+ 支持物理键盘输入
-+ 支持横/竖屏自动切换
-+ 支持防录屏
-
-在Android使用上API创建Surface并进行[Dear ImGui](https://github.com/ocornut/imgui.git)的绘制。
-
-**注意**：如果拥有Surface的进程的用户权限在`shell`之下，则你的Surface不会被系统添加到根视图，也就是不会显示出来，详情请看：[SurfaceFlinger.cpp](https://cs.android.com/android/platform/superproject/main/+/main:frameworks/native/services/surfaceflinger/SurfaceFlinger.cpp;l=4769)
-
-## 支持系统版本
-
-仅标注大版本，小版本没特别说明的都是支持的。
-
-| 古董版本 | 过渡版本 | 中间版本 | 新版本 |
-| ------------ | ----------- | ------------ | ------------ |
-| ✅ Android5 | ✅ Android8 | ✅ Android9 | ✅ Android12 |
-| ✅ Android6 |              | ✅ Android10 | ✅ Android13 |
-| ✅ Android7 |              | ✅ Android11 | ✅ Android14 |
-|              |              |              | ✅ Android15 |
-|              |              |              | ✅ Android16 |
-
-目前所有版本都能正常被录屏，如果有发现不兼容的版本请提交 issue。
-
-## 编译
-
-0. 确保在项目根目录打开命令行终端 。
-1. 执行`git submodule init` 。
-2. 执行`git submodule update` 。
-3. 执行`cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${NDK_PATH}build/cmake/android.toolchain.cmake -DANDROID_PLATFORM=android-23 -DANDROID_ABI=${PLATFORM} -S . -B build -G Ninja`，其中`${NDK_PATH}`需要替换为你的NDK路径，`${PLATFORM}`替换成你想要编译出的目标平台。
-4. 执行`cmake --build build --config Release`。
-5. 编译完成。
-
-你也可以直接使用`build.bat`来进行批量编译，默认编译`armeabi-v7a arm64-v8a x86 x86_64`四个版本，可修改脚本中的`ANDROID_ABIS`变量来进行更改。
-
-脚本有三个可选参数分别为：NDK路径、最低支持SDK版本、CMake程序路径，不设置则脚本自动检测`NDK_PATH`与CMake工具链，如果都没有则使用脚本默认内置路径。
-
-## 使用
-
-例子请看：[src/test-ui/main.cc](https://github.com/Bzi-Han/AndroidSurfaceImgui/blob/main/src/test-ui/main.cc)
-
-<img src="https://github.com/Bzi-Han/AndroidSurfaceImgui/blob/main/screenshot.jpg" height="500px" />
-
-## RPC使用
-
-1. Server：[src/test-ui/canvas.cc](https://github.com/Bzi-Han/AndroidSurfaceImgui/blob/main/src/test-ui/canvas.cc)
-2. Client：[src/test-ui/render.cc](https://github.com/Bzi-Han/AndroidSurfaceImgui/blob/main/src/test-ui/render.cc)
-
-[screenshot.webm](https://github.com/Bzi-Han/AndroidSurfaceImgui/assets/75075077/7b6f7adc-2b68-44d1-bf7a-53bcf0a151a3)
-
-## TODO
-
-+ [ ] 重构 `AImGui` 与 `ATouchEvent`，完全分离事件处理逻辑并规范导入与 `include_directories`。
-+ [ ] 整理一下`Android`在`PC(Windows)`上的远程绘制Demo。
-
-## 特别鸣谢赞助
-
-感谢以下赞助者对本项目的支持(不分先后)：
-
-+ [不解释](https://github.com/Dasongzi1366)
-+ [barry-ran](https://github.com/barry-ran)
-
-谢谢大家的支持！❤️
+   * Replace ${NDK_PATH} with your local Android NDK path.
+   * Replace ${PLATFORM} with your target ABI (e.g., arm64-v8a).
+ * Execute build: cmake --build build --config Release
+Batch Build (Windows)
+You can use build.bat for batch compilation. By default, it builds for armeabi-v7a, arm64-v8a, x86, and x86_64.
+ * Arguments: The script accepts three optional parameters: NDK Path, Minimum SDK Version, and CMake Path.
+ * If not provided, the script will auto-detect NDK_PATH and CMake via environment variables.
+Usage Examples
+ * Main UI Example: src/test-ui/main.cc
+ * RPC Server: src/test-ui/canvas.cc
+ * RPC Client: src/test-ui/render.cc
+Roadmap / TODO
+ * [ ] Refactor AImGui and ATouchEvent: Fully decouple event handling logic and standardize imports/include_directories.
+ * [ ] Organize the Remote Rendering Demo for Android on PC (Windows).
+Acknowledgments & Sponsors
+Special thanks to the following sponsors for supporting this project:
+ * Dasongzi1366
+ * barry-ran
+Thank you for your support! ❤️
+Would you like me to help you analyze the main.cc file to see how it handles the root shell execution alongside this ImGui interface?
