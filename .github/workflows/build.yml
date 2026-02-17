@@ -1,0 +1,52 @@
+name: Build Android Terminal ImGui
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Memungkinkan build manual dari tab Actions
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive # Penting untuk menarik imgui dan zstd
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c # Versi NDK yang stabil untuk C++20
+          add-to-path: true
+
+      - name: Install Ninja
+        run: sudo apt-get install ninja-build
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-34 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -S .
+
+      - name: Build Project
+        run: cmake --build build --target test-ui
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Terminal-ImGui-arm64-v8a
+          path: tests/arm64-v8a/test-ui
