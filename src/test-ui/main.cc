@@ -1,132 +1,20 @@
 #include "Global.h"
 #include "AImGui.h"
 
-// Include tambahan untuk fungsi Terminal & Environment
 #include <thread>
-#include <mutex>
-#include <vector>
-#include <string>
-#include <cstdio>
-#include <stdlib.h>
 #include <iostream>
 
-// --- KELAS TERMINAL TERMUX ---
-class ImGuiTerminal {
-public:
-    std::vector<std::string> Logs;
-    char InputBuf[256];
-    std::mutex LogMutex;
-    bool ScrollToBottom = false;
-
-    ImGuiTerminal() {
-        memset(InputBuf, 0, sizeof(InputBuf));
-        Logs.push_back("--- Termux ImGui Terminal Ready ---");
-    }
-
-    void LoadTermuxEnv() {
-        const char* prefix = "/data/data/com.termux/files/usr";
-        const char* home   = "/data/data/com.termux/files/home";
-
-        // Setup environment agar menunjuk ke binary Termux
-        setenv("PATH", (std::string(prefix) + "/bin:" + getenv("PATH")).c_str(), 1);
-        setenv("LD_PRELOAD", (std::string(prefix) + "/lib/libtermux-exec-ld-preload.so").c_str(), 1);
-        setenv("HOME", home, 1);
-        setenv("PREFIX", prefix, 1);
-        setenv("TMPDIR", (std::string(prefix) + "/tmp").c_str(), 1);
-        setenv("TERM", "xterm-256color", 1);
-        setenv("COLORTERM", "truecolor", 1);
-    }
-
-    void Execute(std::string command) {
-        // Jalankan di thread terpisah agar UI tidak freeze
-        std::thread([this, command]() {
-            LoadTermuxEnv();
-            
-            std::string bash_path = "/data/data/com.termux/files/usr/bin/bash";
-            // Gabungkan stderr ke stdout agar pesan error terlihat
-            std::string final_cmd = bash_path + " -c \"" + command + "\" 2>&1";
-
-            FILE* pipe = popen(final_cmd.c_str(), "r");
-            if (!pipe) {
-                std::lock_guard<std::mutex> lock(LogMutex);
-                Logs.push_back("[!] Gagal membuka pipe.");
-                return;
-            }
-
-            char buffer[256];
-            while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-                std::lock_guard<std::mutex> lock(LogMutex);
-                Logs.push_back(std::string(buffer));
-                ScrollToBottom = true;
-            }
-            pclose(pipe);
-        }).detach();
-    }
-
-    void Draw(const char* title, bool* p_open) {
-        ImGui::SetNextWindowSize(ImVec2(520, 600), ImGuiCond_FirstUseEver);
-        if (!ImGui::Begin(title, p_open)) {
-            ImGui::End();
-            return;
-        }
-
-        // Tampilan Gelap khas Terminal
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
-        const float footer_height = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
-        
-        ImGui::BeginChild("LogRegion", ImVec2(0, -footer_height), true);
-        {
-            std::lock_guard<std::mutex> lock(LogMutex);
-            for (const auto& line : Logs) {
-                if (line.find("> ") == 0)
-                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "%s", line.c_str()); // Warna Hijau untuk Prompt
-                else
-                    ImGui::TextUnformatted(line.c_str()); // Putih untuk Output
-            }
-            if (ScrollToBottom) {
-                ImGui::SetScrollHereY(1.0f);
-                ScrollToBottom = false;
-            }
-        }
-        ImGui::EndChild();
-        ImGui::PopStyleColor();
-
-        ImGui::Separator();
-
-        // Input Text
-        bool reclaim_focus = false;
-        if (ImGui::InputText("Command", InputBuf, IM_ARRAYSIZE(InputBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
-            std::string cmd(InputBuf);
-            if (!cmd.empty()) {
-                Logs.push_back("> " + cmd);
-                Execute(cmd);
-            }
-            memset(InputBuf, 0, sizeof(InputBuf));
-            reclaim_focus = true;
-        }
-        
-        ImGui::SetItemDefaultFocus();
-        if (reclaim_focus) ImGui::SetKeyboardFocusHere(-1);
-
-        ImGui::End();
-    }
-};
-
-// --- MAIN FUNCTION ---
 int main()
 {
     android::AImGui imgui(android::AImGui::Options{.renderType = android::AImGui::RenderType::RenderNative, .autoUpdateOrientation = true});
-    bool state = true;
-    bool showTermux = true; // State untuk jendela Terminal
-    
+    bool state = true, showDemoWindow = false, showAnotherWindow = false;
+    ImVec4 clearColor(0.45f, 0.55f, 0.60f, 1.00f);
+
     if (!imgui)
     {
         LogInfo("[-] ImGui initialization failed");
         return 0;
     }
-
-    // Inisialisasi terminal
-    static ImGuiTerminal terminal;
 
     std::thread processInputEventThread(
         [&]
@@ -142,17 +30,40 @@ int main()
     {
         imgui.BeginFrame();
 
-        // Panggil jendela Terminal Termux
-        if (showTermux) {
-            terminal.Draw("Termux ImGui Overlay", &showTermux);
+        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        if (showDemoWindow)
+            ImGui::ShowDemoWindow(&showDemoWindow);
+
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+        {
+            static float f = 0.0f;
+            static int counter = 0;
+
+            ImGui::Begin("Hello, world!", &state); // Create a window called "Hello, world!" and append into it.
+
+            ImGui::Text("This is some useful text.");        // Display some text (you can use a format strings too)
+            ImGui::Checkbox("Demo Window", &showDemoWindow); // Edit bools storing our window open/close state
+            ImGui::Checkbox("Another Window", &showAnotherWindow);
+
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::ColorEdit3("clear color", (float *)&clearColor); // Edit 3 floats representing a color
+
+            if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
+
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::End();
         }
 
-        // Contoh window bawaan repo tetap dipertahankan
+        // 3. Show another simple window.
+        if (showAnotherWindow)
         {
-            ImGui::Begin("Settings", &state);
-            ImGui::Checkbox("Tampilkan Terminal", &showTermux);
-            ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-            if (ImGui::Button("Exit")) state = false;
+            ImGui::Begin("Another Window", &showAnotherWindow); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Text("Hello from another window!");
+            if (ImGui::Button("Close Me"))
+                showAnotherWindow = false;
             ImGui::End();
         }
 
